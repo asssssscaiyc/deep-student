@@ -11,6 +11,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          repository: helixnow/deep-student
           ref: v0.9.34
 
       - name: Setup Rust
