@@ -31,7 +31,7 @@ jobs:
       - name: Install protoc
         run: brew install protobuf
 
-      - name: Set development team in config
+      - name: Configure iOS settings
         run: |
           node -e "
             const fs = require('fs');
@@ -39,8 +39,12 @@ jobs:
             cfg.bundle = cfg.bundle || {};
             cfg.bundle.iOS = cfg.bundle.iOS || {};
             cfg.bundle.iOS.developmentTeam = 'DUMMYTEAM';
+            cfg.bundle.iOS.infoPlist = cfg.bundle.iOS.infoPlist || {};
+            cfg.bundle.iOS.infoPlist.UIFileSharingEnabled = true;
+            cfg.bundle.iOS.infoPlist.LSSupportsOpeningDocumentsInPlace = true;
             fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(cfg, null, 2));
           "
+
 
       - name: Initialize iOS project
         run: |
