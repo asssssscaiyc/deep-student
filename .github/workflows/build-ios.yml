@@ -25,9 +25,11 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
+      - name: Install protoc
+        run: brew install protobuf
+
       - name: Set development team in config
         run: |
-          # 把占位 Team ID 写进 tauri.conf.json
           node -e "
             const fs = require('fs');
             let cfg = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
