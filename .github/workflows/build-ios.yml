@@ -27,7 +27,7 @@ jobs:
 
       - name: Build iOS App (unsigned)
         run: |
-          export TAURI_IOS_TEAM_ID="DUMMYTEAM"
+          export APPLE_DEVELOPMENT_TEAM="DUMMYTEAM"
           npx @tauri-apps/cli@latest ios build --no-sign
 
       - name: Upload IPA
