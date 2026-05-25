@@ -27,11 +27,13 @@ jobs:
 
       - name: Initialize iOS project
         run: |
+          export NODE_OPTIONS="--max-old-space-size=8192"
           export APPLE_DEVELOPMENT_TEAM="DUMMYTEAM"
           npx @tauri-apps/cli@latest ios init
 
       - name: Build iOS App (unsigned)
         run: |
+          export NODE_OPTIONS="--max-old-space-size=8192"
           export APPLE_DEVELOPMENT_TEAM="DUMMYTEAM"
           npx @tauri-apps/cli@latest ios build --no-sign
 
