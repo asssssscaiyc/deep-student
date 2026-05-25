@@ -50,12 +50,12 @@ jobs:
 
       - name: Enable file sharing in Info.plist
         run: |
-          find src-tauri/gen/apple -name "Info.plist" -not -path "*/Pods/*" | while read plist; do
+          find src-tauri/gen/apple -name Info.plist | while read plist; do
+            if echo "$plist" | grep -q "/Pods/"; then continue; fi
             echo "Patching: $plist"
-            plist_content=\$(cat "$plist")
-            new_content="\${plist_content/<\/dict><\/plist>/<key>UIFileSharingEnabled<\/key><true\/><key>LSSupportsOpeningDocumentsInPlace<\/key><true\/><\/dict><\/plist>}"
-            echo "\$new_content" > "$plist"
+            sed -i '' 's|</dict></plist>|<key>UIFileSharingEnabled</key><true/><key>LSSupportsOpeningDocumentsInPlace</key><true/></dict></plist>|' "$plist"
           done
+
 
       - name: Build iOS App (unsigned)
         run: |
