@@ -31,7 +31,7 @@ jobs:
       - name: Install protoc
         run: brew install protobuf
 
-      - name: Configure iOS settings
+      - name: Set development team in config
         run: |
           node -e "
             const fs = require('fs');
@@ -39,17 +39,23 @@ jobs:
             cfg.bundle = cfg.bundle || {};
             cfg.bundle.iOS = cfg.bundle.iOS || {};
             cfg.bundle.iOS.developmentTeam = 'DUMMYTEAM';
-            cfg.bundle.iOS.infoPlist = cfg.bundle.iOS.infoPlist || {};
-            cfg.bundle.iOS.infoPlist.UIFileSharingEnabled = true;
-            cfg.bundle.iOS.infoPlist.LSSupportsOpeningDocumentsInPlace = true;
             fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(cfg, null, 2));
           "
-
 
       - name: Initialize iOS project
         run: |
           export NODE_OPTIONS="--max-old-space-size=8192"
+          export APPLE_DEVELOPMENT_TEAM="DUMMYTEAM"
           npx @tauri-apps/cli@latest ios init
+
+      - name: Enable file sharing in Info.plist
+        run: |
+          find src-tauri/gen/apple -name "Info.plist" -not -path "*/Pods/*" | while read plist; do
+            echo "Patching: $plist"
+            plist_content=\$(cat "$plist")
+            new_content="\${plist_content/<\/dict><\/plist>/<key>UIFileSharingEnabled<\/key><true\/><key>LSSupportsOpeningDocumentsInPlace<\/key><true\/><\/dict><\/plist>}"
+            echo "\$new_content" > "$plist"
+          done
 
       - name: Build iOS App (unsigned)
         run: |
