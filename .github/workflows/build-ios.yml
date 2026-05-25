@@ -25,16 +25,26 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
+      - name: Set development team in config
+        run: |
+          # 把占位 Team ID 写进 tauri.conf.json
+          node -e "
+            const fs = require('fs');
+            let cfg = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
+            cfg.bundle = cfg.bundle || {};
+            cfg.bundle.iOS = cfg.bundle.iOS || {};
+            cfg.bundle.iOS.developmentTeam = 'DUMMYTEAM';
+            fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(cfg, null, 2));
+          "
+
       - name: Initialize iOS project
         run: |
           export NODE_OPTIONS="--max-old-space-size=8192"
-          export APPLE_DEVELOPMENT_TEAM="DUMMYTEAM"
           npx @tauri-apps/cli@latest ios init
 
       - name: Build iOS App (unsigned)
         run: |
           export NODE_OPTIONS="--max-old-space-size=8192"
-          export APPLE_DEVELOPMENT_TEAM="DUMMYTEAM"
           npx @tauri-apps/cli@latest ios build --no-sign
 
       - name: Upload IPA
