@@ -1,32 +1,20 @@
-name: Build Deep Student for iOS
+name: Build Deep Student for iOS (unsigned)
 
 on:
   workflow_dispatch:
-    inputs:
-      export_method:
-        description: '导出方式'
-        required: true
-        default: 'development'
-        type: choice
-        options:
-          - development
-          - ad-hoc
 
 jobs:
   build-ios:
     runs-on: macos-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          repository: helixnow/deep-student
-          ref: main
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-apple-ios
+          targets: aarch64-apple-ios aarch64-apple-ios-sim
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -37,68 +25,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Create .env file
-        run: |
-          cat > .env << EOF
-          IOS_TEAM_ID=${{ secrets.IOS_TEAM_ID }}
-          IOS_EXPORT_METHOD=${{ github.event.inputs.export_method || 'development' }}
-          EOF
+      - name: Update Tauri CLI
+        run: npm install @tauri-apps/cli@latest
 
-      - name: Create keychain and import certificate
-        # 如果没有付费开发者账号，可以用 -allowProvisioningUpdates
-        # 让 Xcode 自动处理签名（需要 Apple ID 凭据）
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
-          IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
-        run: |
-          # 创建临时 keychain
-          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
-          KEYCHAIN_PASSWORD=build
-
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 3600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
-
-          # 如果上传了 P12 证书，导入它（推荐方式）
-          if [[ -n "${{ secrets.IOS_P12_BASE64 }}" ]]; then
-            echo "${{ secrets.IOS_P12_BASE64 }}" | base64 -d > $RUNNER_TEMP/cert.p12
-            security import $RUNNER_TEMP/cert.p12 \
-              -k "$KEYCHAIN_PATH" \
-              -P "${{ secrets.IOS_P12_PASSWORD }}" \
-              -T /usr/bin/codesign
-            security set-key-partition-list \
-              -S apple-tool:,apple:,codesign: \
-              -s -k "$KEYCHAIN_PATH" "$KEYCHAIN_PATH"
-          fi
-        continue-on-error: true
-
-      - name: Build iOS app
-        env:
-          IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
-          IOS_EXPORT_METHOD: ${{ github.event.inputs.export_method || 'development' }}
-        run: |
-          # 设置 Xcode 自动签名（需要 Apple ID + app-specific password）
-          # 首次运行会在 Apple 服务器注册设备
-          defaults write com.apple.dt.Xcode DVTEnableProvisioningUpdates -bool YES
-
-          # Tauri 官方构建方式
-          npx @tauri-apps/cli ios build \
-            --export-method $IOS_EXPORT_METHOD
+      - name: Build iOS App (unsigned)
+        run: npx @tauri-apps/cli ios build --no-sign
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
-          name: DeepStudent-iOS-${{ github.event.inputs.export_method || 'development' }}
-          path: |
-            src-tauri/gen/apple/build/Output/*.ipa
-            src-tauri/gen/apple/build/**/*.ipa
-          if-no-files-found: warn
-
-      - name: Upload dSYM (for crash reporting, optional)
-        uses: actions/upload-artifact@v4
-        with:
-          name: DeepStudent-dSYM
-          path: src-tauri/gen/apple/build/**/*.dSYM.zip
-          if-no-files-found: ignore
+          name: DeepStudent-iOS
+          path: src-tauri/gen/apple/build/*.ipa
